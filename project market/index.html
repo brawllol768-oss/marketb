@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a1a0f">
+<title>BlackBerry | Market</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="responsive.css">
+<link rel="stylesheet" href="skeleton.css">
+<link rel="stylesheet" href="themes.css">
+</head>
+<body>
+<div class="bg-layer"></div>
+<div class="bg-blobs"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+<div id="app">
+<header>
+  <div class="header-inner">
+    <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+    <div class="logo" id="logoClick"><span class="logo-icon"/span><span class="logo-text">BlackBerry | Market</span></div>
+    <div class="search-box"><input type="text" id="searchInput" placeholder="Поиск объявлений..."></div>
+    <div class="bell" id="bellBtn">🔔<span class="bell-badge" id="bellBadge" style="display:none;">0</span></div>
+  </div>
+</header>
+<div class="container">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <h3>📱 МЕНЮ</h3>
+      <div class="nav-item active" data-view="market"><span class="icon">🛒</span><span>Рынок</span><span class="badge" id="marketBadge" style="display:none;">0</span></div>
+      <div class="nav-item" data-view="my"><span class="icon">📦</span><span>Мои объявления</span></div>
+      <div class="nav-item" data-view="chats"><span class="icon">💬</span><span>Чаты</span><span class="badge" id="chatBadge" style="display:none;">0</span></div>
+      <div class="nav-item" data-view="favorites"><span class="icon">❤️</span><span>Избранное</span></div>
+      <div class="nav-item" data-view="support"><span class="icon">🛠️</span><span>Техподдержка</span></div>
+      <div class="nav-item" data-view="profile"><span class="icon">👤</span><span>Профиль</span></div>
+      <div class="nav-item" data-view="admin" id="adminNavItem" style="display:none;"><span class="icon">🛡️</span><span>Админ-панель</span></div>
+    </div>
+    <div class="sidebar-section">
+      <h3>📂 КАТЕГОРИИ</h3>
+      <div class="nav-item active" data-cat="all"><span class="icon">🗂️</span><span>Все</span></div>
+      <div class="nav-item" data-cat="atm"><span class="icon">🏠</span><span>Недвижимость</span></div>
+      <div class="nav-item" data-cat="transport"><span class="icon">🚗</span><span>Транспорт</span></div>
+      <div class="nav-item" data-cat="weapon"><span class="icon">🔫</span><span>Оружие</span></div>
+      <div class="nav-item" data-cat="skins"><span class="icon">🎨</span><span>Скины</span></div>
+      <div class="nav-item" data-cat="free"><span class="icon">🎁</span><span>Бесплатно</span></div>
+    </div>
+    <div class="sidebar-section">
+      <h3>🖥️ Сервер</h3>
+      <select class="server-select" id="serverFilter"><option value="all">Все сервера</option></select>
+    </div>
+  </aside>
+  <main class="main" id="mainContent"></main>
+</div>
+</div>
+<div class="mobile-overlay" id="mobileOverlay"></div>
+
+<div class="gallery-modal" id="galleryModal">
+  <div class="gallery-hint">Свайпните влево/вправо для переключения</div>
+  <div class="gallery-modal-content" id="galleryModalContent"></div>
+  <button class="gallery-modal-close" onclick="closeGalleryModal()">✕</button>
+  <button class="gallery-modal-nav prev" onclick="changeGalleryImage(-1)">‹</button>
+  <button class="gallery-modal-nav next" onclick="changeGalleryImage(1)">›</button>
+  <div class="gallery-modal-counter" id="galleryCounter">1 / 5</div>
+  <div class="gallery-close-hint">Свайп вниз или нажмите ✕ для закрытия</div>
+</div>
+
+<div class="modal-overlay" id="profileModal"><div class="modal"><div class="modal-header"><h2>👤 Создание профиля</h2><button class="modal-close" data-close>×</button></div>
+<form id="profileForm"><div class="modal-body">
+  <div class="form-group" data-field="name"><label>Имя (ник в игре) <span class="req">*</span></label><input type="text" name="name" placeholder="Введите имя (от 3 символов)" maxlength="30" required><div class="error-msg">Введите имя (от 3 символов)</div></div>
+  <div class="form-group" data-field="username"><label>@username <span class="req">*</span></label><input type="text" name="username" placeholder="Username от 3 символов (только буквы, цифры, _)" maxlength="20" required><div class="error-msg">Username от 3 символов (только буквы, цифры, _)</div></div>
+  <div class="form-group" data-field="adminCode"><label>🔑 Код администратора (если есть)</label><input type="text" name="adminCode" placeholder="Код выдаётся только создателю"><div class="hint">Код можно использовать только один раз</div><div class="error-msg">Неверный или использованный код</div></div>
+  <div class="form-group"><label>Аватар (необязательно)</label><div id="avatarPreview"></div><label for="avatarInput" class="file-upload">📎 Нажмите для загрузки<br><small>JPG, PNG, GIF</small></label><input type="file" id="avatarInput" accept="image/*" style="display:none;"></div>
+</div><div class="modal-footer"><button type="submit" class="btn btn-primary">✅ Продолжить</button></div></form></div></div>
+
+<div class="modal-overlay" id="createModal"><div class="modal"><div class="modal-header"><h2 id="createModalTitle">➕ Создать объявление</h2><button class="modal-close" data-close>×</button></div>
+<form id="createForm"><div class="modal-body">
+  <div class="form-group" data-field="title"><label>Название товара <span class="req">*</span></label><input type="text" name="title" placeholder="Введите название (от 3 символов)" maxlength="60" required><div class="error-msg">Введите название (от 3 символов)</div></div>
+  <div class="form-group" data-field="price"><label>Цена (₽) <span class="req">*</span></label><input type="text" name="price" placeholder="Введите 0 для категории Бесплатно" required><div class="hint">Введите 0 для категории "Бесплатно"</div><div class="error-msg">Укажите корректную цену</div></div>
+  <div class="form-group" data-field="server"><label>🖥️ Сервер <span class="req">*</span></label><select name="server" id="createServerSelect" required><option value="">Выберите сервер</option></select><div class="error-msg">Выберите сервер</div></div>
+  <div class="form-group" data-field="category"><label>📂 Категория <span class="req">*</span></label><select name="category" required><option value="">Выберите категорию</option><option value="atm">🏠 Недвижимость</option><option value="transport">🚗 Транспорт</option><option value="weapon">🔫 Оружие</option><option value="skins">🎨 Скины</option><option value="free">🎁 Бесплатно</option></select><div class="error-msg">Выберите категорию</div></div>
+  <div class="form-group"><label>📝 Описание</label><textarea name="description" rows="4" placeholder="Опишите товар подробно..." maxlength="1000"></textarea></div>
+  <div class="form-group"><label>📎 Фото / Видео (до 10 файлов)</label><label for="fileInput" class="file-upload">📷 Нажмите для загрузки файлов<br><small>JPG, PNG, GIF, MP4 (макс. 10MB)</small></label><input type="file" id="fileInput" accept="image/*,video/*" multiple style="display:none;"><div class="file-preview" id="filePreview"></div></div>
+</div><div class="modal-footer"><button type="button" class="btn" data-close>❌ Отмена</button><button type="submit" class="btn btn-primary">✅ Создать</button></div></form></div></div>
+
+<div class="modal-overlay" id="adminCodeModal"><div class="modal"><div class="modal-header"><h2>🔑 Генерация админ-кода</h2><button class="modal-close" data-close>×</button></div>
+<div class="modal-body"><p style="margin-bottom:16px;color:var(--text-muted);font-size:13px;">Создайте одноразовый код для назначения администратора. Код можно использовать только один раз.</p><div style="background:rgba(10,26,15,0.6);border:2px dashed var(--accent);border-radius:12px;padding:20px;text-align:center;"><div id="codeText" style="font-size:20px;font-weight:800;color:var(--accent-light);letter-spacing:2px;font-family:monospace;">-</div></div></div>
+<div class="modal-footer"><button type="button" class="btn" data-close>❌ Закрыть</button><button type="button" class="btn btn-primary" id="copyCodeBtn">📋 Скопировать код</button></div></div></div>
+
+<div class="modal-overlay" id="actionModal"><div class="modal"><div class="modal-header"><h2 id="actionModalTitle">⚡ Действие с пользователем</h2><button class="modal-close" data-close>×</button></div>
+<form id="actionForm"><div class="modal-body">
+  <input type="hidden" name="targetUsername" id="targetUsername">
+  <div class="form-group"><label>Тип действия <span class="req">*</span></label><select name="actionType" id="actionType" required><option value="ban">🚫 Забанить (навсегда)</option><option value="mute">🔇 Запретить подачу объявлений</option><option value="unban">✅ Разбанить / Снять ограничения</option></select></div>
+  <div class="form-group" id="durationGroup" style="display:none;"><label>⏱️ Длительность (часов)</label><input type="number" name="duration" placeholder="Оставьте пустым для бессрочного" min="1"></div>
+  <div class="form-group"><label>📋 Причина <span class="req">*</span></label><textarea name="reason" rows="3" placeholder="Укажите причину..." required></textarea></div>
+</div><div class="modal-footer"><button type="button" class="btn" data-close>❌ Отмена</button><button type="submit" class="btn btn-danger" id="actionSubmitBtn">⚡ Применить</button></div></form></div></div>
+
+<div class="modal-overlay" id="deleteListingModal"><div class="modal"><div class="modal-header"><h2>🗑️ Удаление объявления</h2><button class="modal-close" data-close>×</button></div>
+<form id="deleteListingForm"><div class="modal-body"><input type="hidden" id="deleteListingId"><p style="margin-bottom:16px;color:var(--text-muted);">Укажите причину удаления или пропустите этот шаг.</p><div class="form-group"><label>📋 Причина удаления (необязательно)</label><textarea name="deleteReason" rows="3" placeholder="Причина..."></textarea></div></div>
+<div class="modal-footer"><button type="button" class="btn" data-close>❌ Отмена</button><button type="button" class="btn" id="skipDeleteBtn">⏭️ Пропустить</button><button type="submit" class="btn btn-danger">🗑️ Удалить</button></div></form></div></div>
+
+<div class="modal-overlay" id="reportModal"><div class="modal"><div class="modal-header"><h2>🚨 Пожаловаться</h2><button class="modal-close" data-close>×</button></div>
+<form id="reportForm"><div class="modal-body"><input type="hidden" name="reportTarget" id="reportTarget"><input type="hidden" name="reportType" id="reportType">
+  <div class="form-group"><label>Причина жалобы <span class="req">*</span></label><select name="reportReason" required><option value="">Выберите причину</option><option value="Спам">📢 Спам</option><option value="Мошенничество">🚫 Мошенничество</option><option value="Нарушение правил">⚠️ Нарушение правил</option><option value="Недопустимый контент">❌ Недопустимый контент</option><option value="Другое">📝 Другое</option></select></div>
+  <div class="form-group"><label>Описание <span class="req">*</span></label><textarea name="reportDescription" rows="4" placeholder="Подробно опишите ситуацию..." required></textarea></div>
+</div><div class="modal-footer"><button type="button" class="btn" data-close>❌ Отмена</button><button type="submit" class="btn btn-warning">🚨 Отправить жалобу</button></div></form></div></div>
+
+<div class="modal-overlay" id="reviewModal"><div class="modal"><div class="modal-header"><h2>⭐ Оставить отзыв</h2><button class="modal-close" data-close>×</button></div>
+<form id="reviewForm"><div class="modal-body"><input type="hidden" name="reviewTarget" id="reviewTarget"><input type="hidden" name="rating" id="ratingValue" value="5">
+  <div class="form-group"><label>Оценка <span class="req">*</span></label><div id="starRating" style="font-size:32px;cursor:pointer;display:flex;gap:4px;"><span data-star="1">⭐</span><span data-star="2">⭐</span><span data-star="3">⭐</span><span data-star="4">⭐</span><span data-star="5">⭐</span></div></div>
+  <div class="form-group"><label>Комментарий</label><textarea name="reviewText" rows="3" placeholder="Ваш отзыв..."></textarea></div>
+</div><div class="modal-footer"><button type="button" class="btn" data-close>❌ Отмена</button><button type="submit" class="btn btn-primary">⭐ Отправить отзыв</button></div></form></div></div>
+
+<div class="modal-overlay" id="notificationsModal"><div class="modal"><div class="modal-header"><h2>🔔 Уведомления</h2><button class="modal-close" data-close>×</button></div><div class="modal-body" id="notificationsList" style="max-height:60vh;overflow-y:auto;"></div></div></div>
+
+<div class="modal-overlay" id="supportModal"><div class="modal"><div class="modal-header"><h2>🛠️ Новое обращение</h2><button class="modal-close" data-close>×</button></div>
+<form id="supportForm"><div class="modal-body">
+  <div class="form-group"><label>Тема обращения <span class="req">*</span></label><input type="text" id="supportSubject" name="subject" placeholder="Кратко опишите проблему" maxlength="100" required></div>
+  <div class="form-group"><label>Описание проблемы <span class="req">*</span></label><textarea id="supportDescription" name="description" rows="5" placeholder="Подробно опишите, что произошло..." maxlength="2000" required></textarea></div>
+  <div class="form-group"><label>📎 Прикрепить скриншоты (необязательно)</label><div id="supportNewAttachments" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div><div class="file-upload" id="supportAttachNewBtn">📷 Нажмите для загрузки файлов<br><small>JPG, PNG, GIF (до 5MB каждое)</small></div><input type="file" id="supportNewFileInput" accept="image/*" multiple style="display:none;"></div>
+</div><div class="modal-footer"><button type="button" class="btn" data-close>❌ Отмена</button><button type="submit" class="btn btn-primary">📨 Отправить</button></div></form></div></div>
+
+<div id="maintenanceOverlay" class="maintenance-overlay" style="display:none;">
+  <div class="maintenance-box">
+    <div class="maintenance-icon">🚧</div>
+    <h2>Технические работы</h2>
+    <p id="maintenanceMsg">Ведутся технические работы. Скоро вернёмся!</p>
+    <div class="loader-spinner" style="margin:18px auto 0;"></div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="globals.js"></script>
+<script src="utils.js"></script>
+<script src="cache.js"></script>
+<script src="storage.js"></script>
+<script src="firebase.js"></script>
+<script src="gallery.js"></script>
+<script src="render.js"></script>
+<script src="chats.js"></script>
+<script src="admin.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
